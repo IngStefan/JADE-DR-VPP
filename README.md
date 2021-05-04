@@ -37,3 +37,4 @@ More to come at the end of 2021
 * [Technical implementation of this system](https://ieeexplore.ieee.org/document/9212168)
 
 
+[![DOI](https://zenodo.org/badge/363673165.svg)](https://zenodo.org/badge/latestdoi/363673165)
