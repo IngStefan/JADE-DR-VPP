@@ -13,7 +13,7 @@ This project is especially created for DR Aggregators or VPP Operators that real
 Otherwise, anyone who is interested in MAS or is active in the research field is welcome to use this software.
 
 ## What is the goal of this project?
-To help DR aggregators use MAS to improve their existing virtual power plants.
+To help DR Aggregators use MAS to improve their existing VPPs.
 
 ## Additional documentation
 More to come at the end of 2021
