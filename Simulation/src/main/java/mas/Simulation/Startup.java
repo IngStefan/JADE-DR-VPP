@@ -44,9 +44,9 @@ public class Startup {
 			int quarterMinute = 0;
 			boolean stateActivated = false;
 			
-			long startTime; //*****************ZEITMESSUNGSVARIABLE
-			long endTime;  	//******************ZEITMESSUNG ENDE**************
-			long timeElapsed; 	//******************ZEITMESSUNG Berechnung**************
+			long startTime; 	//needed for time measurements
+			long endTime;  		//needed for time measurements
+			long timeElapsed; 	//needed for time measurements
 			
 			//Preparing the start of the simulation
 			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
@@ -97,9 +97,10 @@ public class Startup {
 					}	
 				}
 			
-			
-				//checking if the expiration time for the offer transfer is over, then move to the next step 
+				//******SIMULATION SPEED SETTINGS ******************
 				
+				// 1 Minute Setting
+				// Checking if the expiration time for the offer transfer is over, then move to the next step 			
 //				if(dateNow.after(afterAddingOneMin)) {
 //					t = dateNow.getTime();
 //					afterAddingOneMin=new Date(t + (1 * 60000));
@@ -108,8 +109,8 @@ public class Startup {
 //				}
 
 				
-				//Change the simulation speed at the activation day. before that, a quicker simulations speed for the planning mechanisms
-				//if(dateNow.after(startdate)) {
+				// Hybrid Setting
+				//	Change the simulation speed at the activation day. before that, a quicker simulations speed for the planning mechanisms
 				if(step >= 3) {
 					//Normal Operation Time
 					//********* 15 Minutes Operations *************				
@@ -138,9 +139,6 @@ public class Startup {
 					}
 				}
 
-				
-
-				
 				//create current time as String
 				dateNowString = formatter.format(dateNow);
 				
@@ -168,7 +166,7 @@ public class Startup {
 				//broadcastLTW(2021);
 				
 				/*
-				//*******TIMING MEASUREMENTS**************
+				//*******  TIMING MEASUREMENTS   **********
 				startTime = System.nanoTime();
 				System.out.println("Roundtrip START time in milliseconds : " + startTime / 1000000); //AUSGABE
 //				System.out.println( "Time: "+ dateNow +" and Iterator for Request: " +i );
@@ -182,29 +180,13 @@ public class Startup {
 				
 				*/
 				
+				
+				//******************** SIMULATION SCENARIO **********
 				//State machine for hour blocks
 				if(!stateActivated) {
 					stateActivated = true;
 					String activationDay = DATE;
 					switch(step){
-					//*******TESTING AREA*********
-//					case 0: 
-//						if(quarterMinute == 0) {
-////							System.out.println( "***** TESTS *****" );
-//							System.out.println( "Timestamp: before 21.02.2022 00:00" );
-////							requestNewSetpointLoadProfile(600,"TU_Company1_MRL",activationDay+"16:59:00.0");
-////							startBalancing("TU_Company1_MRL", dateNowString,activationDay+"17:05:00.0");
-////							
-//						}else if(quarterMinute == 1) {
-//														
-//						}else if(quarterMinute == 2) {
-
-//						}else if(quarterMinute == 3) {
-
-//						}
-//						break;
-//						
-//					//********** Starting the Planning Mechanism **********
 					case 0: 
 						if(quarterMinute == 0) {
 							System.out.println( "Timestamp: before 21.02.2022 00:00" );
