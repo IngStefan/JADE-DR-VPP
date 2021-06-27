@@ -128,7 +128,8 @@ public class TU extends Agent {
 			
 			//******************* Collecting Messages from other Agents ************
 			//******** Handling unknown messages: ****************
-			MessageTemplate mt = MessageTemplate.not(MessageTemplate.MatchOntology(ontology.getName()));	//filter for messages that dont use the VPP_DR_Ontology
+			MessageTemplate mt = MessageTemplate.not(MessageTemplate.or(MessageTemplate.MatchOntology(ontology.getName()), //filter for messages that dont use the VPP_DR_Ontology
+					MessageTemplate.MatchOntology("FIPA-Agent-Management"))); 			
 			ACLMessage msg = receive(mt); 	//returns the first message of the message queue with the corresponding template
 			if (msg != null){				//if a proper message can be found
 				//********** every Message that does not use the VPP_DR_Ontology can not be understood ********
@@ -662,7 +663,8 @@ public class TU extends Agent {
 								e.printStackTrace();
 							}
 							step = 99;
-							}
+						}
+						step = 99;
 						break;
 					case 99: 
 						reset();
@@ -672,8 +674,6 @@ public class TU extends Agent {
 						step = 99;
 					}
 			}
-	
-			
 			public boolean done(){
 				return step == 100;
 				}
@@ -800,7 +800,7 @@ public class TU extends Agent {
 					}
 					step = 99;
 				}
-				
+				break;
 			case 2:
 				Date dateNow2 = new Date();
 //				SimpleDateFormat formatter3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
@@ -815,6 +815,32 @@ public class TU extends Agent {
 			case 3:
 				if(TuVariables.balancingInformTrigger && tuName.equals(TuVariables.balancingTuName)) {
 					TuVariables.balancingInformTrigger = false;
+				}else if(TuVariables.balancingInformInstantTrigger && tuName.equals(TuVariables.balancingTuName)) {
+					TuVariables.balancingInformInstantTrigger = false;
+					try {
+						ACLMessage reply = msg.createReply();
+						reply.setPerformative(ACLMessage.INFORM);
+						ContentManager cm = myAgent.getContentManager();
+						ContentElementList cel = new ContentElementList();
+						BalancingSequenceInform newBalancingSequenceInform = new BalancingSequenceInform();
+						//giving the data to the newTUDataSet
+						TUDataSet newTUDataSet = new TUDataSet(TuVariables.feedIn, TuVariables.operatingPoint, 	
+						TuVariables.leadingOperatingPoint, TuVariables.currentValueFR, TuVariables.assignedPool,		
+						TuVariables.status, TuVariables.frequency, TuVariables.aFRRsetpoint, TuVariables.aFRRsetpointEcho,		
+						TuVariables.setpointFR,	TuVariables.aFRRGradientPOS, TuVariables.aFRRGradientNEG,		
+						TuVariables.capacityPOS, TuVariables.capacityNEG, TuVariables.holdingCapacityPOS,
+						TuVariables.holdingCapacityNEG,	TuVariables.controlBandPOS, TuVariables.controlBandNEG);	
+						newBalancingSequenceInform.setTUDataSet(newTUDataSet);
+						newBalancingSequenceInform.setTuName(TuVariables.balancingTuName);
+						newBalancingSequenceInform.setAgentName(getAID().getLocalName());
+						cel.add(newBalancingSequenceInform);
+						cm.fillContent(reply, cel);
+						myAgent.send(reply);
+						System.out.println(getAgent().getAID().getLocalName()+"******* Spontaneous Inform sent *******");
+						TuVariables.resetBalancing();
+					} catch (CodecException | OntologyException e) {
+						e.printStackTrace();
+					}
 				}else if(TuVariables.balancingFailureTrigger && tuName.equals(TuVariables.balancingTuName)) {
 					TuVariables.balancingFailureTrigger = false;
 						
@@ -845,7 +871,8 @@ public class TU extends Agent {
 				}
 				break;
 			case 99: 
-				myAgent.addBehaviour(new ScheduleAccounting(tuName,"accounting-"+tuName));
+				myAgent.addBehaviour(tbf.wrap(new ScheduleAccounting(tuName,"accounting-"+tuName)));
+				//myAgent.addBehaviour(new ScheduleAccounting(tuName,"accounting-"+tuName));
 				TuVariables.resetScheduling();
 				reset();
 				timer.cancel();				//stopping the updating behaviour	
@@ -931,8 +958,12 @@ public class TU extends Agent {
 
 		public  void action(){
 			switch(step){
-			// sending the energy consumption profile to the VPP
 			case 0:
+				//CHANGED FOR SIMULATION****
+				step =1;
+		    	break;
+			// sending the energy consumption profile to the VPP
+			case 1:
 				System.out.println(this.getAgent().getAID().getLocalName()+"******* AccountingSequencePerformer started ********");
 				//searching for the complete AID of the referenced agent
 				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;		//contains the service description list that the schedulingSequence uses
@@ -953,13 +984,13 @@ public class TU extends Agent {
 					}
 					sdSearchTemplate.clearAllServices();
 					if(vppAgents.size()>0) {
-						step = 1;
+						step = 2;
 					}else {
 						System.out.println("No Agent can be found under that name");
 						step = 99;
 					}			
 				break;
-			case 1:
+			case 2:
 				System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out INFORM (energy consumption profiles) to VPP *******");
 				
 				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
@@ -982,12 +1013,13 @@ public class TU extends Agent {
 					cm.fillContent(msg, cel);
 					myAgent.send(msg);
 					msg.reset();
-					step = 2;
+					step = 3;
 				} catch (CodecException | OntologyException e){
 					e.printStackTrace();
 					step = 99;
 				}
-			case 2:	
+				break;
+			case 3:	
 				MessageTemplate mt = MessageTemplate.and(
 						MessageTemplate.MatchOntology(ontology.getName()),MessageTemplate.and(
 						MessageTemplate.MatchConversationId(conversationID),
@@ -1002,10 +1034,10 @@ public class TU extends Agent {
 							Predicate _pc = (Predicate) ce;
 							if(_pc instanceof AccountingSequenceInformReceived){
 								//********** Inform the EMS-System about the results**********				
-								AccountingSequenceInformReceived _asir = (AccountingSequenceInformReceived)_pc;
-								InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(referenceID, getAID().getLocalName(),_asir.getTuName() );
-								ConsumingRest_TU putInstance = new ConsumingRest_TU();
-								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.ACCOUNTINGECPRECEIVED, payload);							
+//								AccountingSequenceInformReceived _asir = (AccountingSequenceInformReceived)_pc;
+//								InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(referenceID, getAID().getLocalName(),_asir.getTuName() );
+//								ConsumingRest_TU putInstance = new ConsumingRest_TU();
+//								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.ACCOUNTINGECPRECEIVED, payload);							
 								step = 99;
 							}
 						} catch (CodecException | OntologyException e) {
@@ -1027,6 +1059,7 @@ public class TU extends Agent {
 			default:
 				step = 99;
 			}
+	    	
 			
 		}
 
@@ -1345,6 +1378,7 @@ public class TU extends Agent {
 						e.printStackTrace();
 						step = 99;
 					}
+					break;
 				case 2:	
 					MessageTemplate mt = MessageTemplate.and(
 							MessageTemplate.MatchOntology(ontology.getName()),MessageTemplate.and(
@@ -1473,6 +1507,7 @@ public class TU extends Agent {
 					e.printStackTrace();
 					step = 99;
 				}
+				break;
 			case 2:	
 				MessageTemplate mt = MessageTemplate.and(
 						MessageTemplate.MatchOntology(ontology.getName()),MessageTemplate.and(
@@ -1549,14 +1584,16 @@ public class TU extends Agent {
 		}
 		
 		public  void action(){
+			// adding a random amount of time for the TU to send the ECPs (not realized via wait, so the agent task does not get suspended)
+			int randomNum = ThreadLocalRandom.current().nextInt(0, 60000); 
 			try {
-				Thread.sleep(20000);
-			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+				Thread.sleep(randomNum);
+			} catch (InterruptedException e1) {
+				e1.printStackTrace();
 			}
-			byte[] schedulingplan = new byte[] {(byte)0x00};
+			byte[] schedulingplan = new byte[] {(byte)0x01};
 			myAgent.addBehaviour(tbf.wrap(new AccountingSequencePerformer(schedulingplan, tuName, referenceID)));
+
 		}
 	
 	}
@@ -1730,6 +1767,7 @@ public class TU extends Agent {
 					e.printStackTrace();
 					step = 99;
 				}
+				break;
 			case 2:	
 				MessageTemplate mt = MessageTemplate.and(
 						MessageTemplate.MatchOntology(ontology.getName()),MessageTemplate.and(

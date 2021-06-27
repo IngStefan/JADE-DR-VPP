@@ -40,9 +40,17 @@ public class ContainerManager {
 		////***** for Agent CONTAINER (TU) ************
 		//Alternative profile to join a Main Container (for TU-Agents)
 		Profile p = new jade.core.ProfileImpl();
-		p.setParameter(jade.core.Profile.CONTAINER_NAME, "TU_Company3");
+		p.setParameter(jade.core.Profile.CONTAINER_NAME, "TU_Simulation");
 		p.setParameter(jade.core.Profile.MAIN_HOST, "192.168.152.233");	//für TU
 		containerController = runtime.createAgentContainer(p);	
+		
+		////***** TEMPPPPP********************
+//		Profile p = new jade.core.ProfileImpl();
+//		p.setParameter(jade.core.Profile.CONTAINER_NAME, "TU_Simulation");
+//		p.setParameter(jade.core.Profile.GUI, "true");
+//		p.setParameter(jade.core.Profile.MAIN_HOST, "192.168.152.208");	//für TU
+//		containerController = runtime.createAgentContainer(p);	
+		
 	}
 	
     public AgentController instantiateAgent(String name, String className) throws StaleProxyException{
