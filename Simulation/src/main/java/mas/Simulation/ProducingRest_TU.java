@@ -64,11 +64,7 @@ public class ProducingRest_TU {
     public String freqRelay_enableInform(
     		@RequestParam(name = "agentName") String _setpointFR,
     		@RequestParam(name = "tuName") String _tuName) {
-    	long startTime = System.nanoTime();
-    	System.out.println("Roundtrip END time in milliseconds : " + startTime / 1000000); //AUSGABE
     	System.out.println("Answer received from "+_tuName);
-    	
-		
     	return _tuName;
     }
     
@@ -76,19 +72,9 @@ public class ProducingRest_TU {
     @RequestMapping (method=RequestMethod.PUT, value = "/vpp/accounting_energyConsumptionProfileReference")
     public String accountingInform(
     	 	@RequestParam(name = "tuName") String _tuName) {
-//    	Global.accountingTrigger = true;
-//    	Global.accountingList.add(_tuName);
-//    	try {
+    	Global.accountingList.add(_tuName);
+    	Global.accountingTrigger = true;
     		System.out.println("Accounting received");
-    		InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(_tuName);
-	    	ConsumingRest_VPP putInstance = new ConsumingRest_VPP();
-			//Thread.sleep(100);
-			putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.ACCOUNTINGECPRECEIVED,payload);	
-			//Thread.sleep(100);
-//	    	} catch (InterruptedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
     	return _tuName;
     }
     

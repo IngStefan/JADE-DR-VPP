@@ -45,7 +45,7 @@ public class ConsumingRest_VPP {
 			restTemplate.put(URL_NODERED+"/vpp-agent/scheduling_reject-proposal", value);
 			break;
 		case ACCOUNTINGECPRECEIVED:
-			restTemplate.put(URL_NODERED+"/vpp-agent/accounting_ecpReceived", value);
+			restTemplate.put(URL_NODERED+"/vpp-agent/accounting_ECPReceived", value);
 			break;	
 		case LOADTIMEWINDOWSINFORM:
 			restTemplate.put(URL_NODERED+"/vpp-agent/loadTimeWindows_broadcast", value);
