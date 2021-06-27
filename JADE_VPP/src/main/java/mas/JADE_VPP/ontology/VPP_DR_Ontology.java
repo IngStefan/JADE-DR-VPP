@@ -71,10 +71,10 @@ public class VPP_DR_Ontology extends Ontology{
 	public static final String FREQRELAY_STATUSINFORM = "FreqRelayStatusInform";
 	public static final String FREQRELAY_STATUSCONFIRM = "FreqRelayStatusConfirm";
 	
-	public static final String CANCELOPERATION_CANCEL = "CancelOperation";
+	public static final String CANCELOPERATION_CANCEL = "CancelOperationCancel";
 	public static final String CANCELOPERATION_CONFIRM = "CancelOperationConfirm";
 	public static final String CANCELOPERATION_FAILURE = "CancelOperationFailure";
-	public static final String CANCELOPERATION_REFRENCE = "operationReference";
+	public static final String CANCELOPERATION_REFERENCE = "operationReference";
 	
 	public static final String REQUESTINFO_INFORM = "RequestInfoInform";
 	public static final String REQUESTINFO_DATASET = "infoSet";
@@ -141,7 +141,7 @@ public class VPP_DR_Ontology extends Ontology{
 			add(new PredicateSchema (FREQRELAY_BLOCKFAILURE),FreqRelayBlockFailure.class);
 			add(new PredicateSchema (FREQRELAY_STATUSINFORM),FreqRelayStatusInform.class);
 			add(new PredicateSchema (FREQRELAY_STATUSCONFIRM),FreqRelayStatusConfirm.class);
-			add(new PredicateSchema (CANCELOPERATION_CANCEL),CancelOperation.class);
+			add(new PredicateSchema (CANCELOPERATION_CANCEL),CancelOperationCancel.class);
 			add(new PredicateSchema (CANCELOPERATION_CONFIRM),CancelOperationConfirm.class);
 			add(new PredicateSchema (CANCELOPERATION_FAILURE),CancelOperationFailure.class);
 			add(new PredicateSchema (REQUESTINFO_INFORM),RequestInfoInform.class);
@@ -182,13 +182,13 @@ public class VPP_DR_Ontology extends Ontology{
 			// *************** PREDICATES
 			
 			PredicateSchema ps = (PredicateSchema) (getSchema(CFPSCHEDULINGSEQUENCE_REFUSE));
-			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
-			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
+			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(CFPSCHEDULINGSEQUENCE_PROPOSE));
 			ps.add(CFPSCHEDULINGSEQUENCE_SCHEDULINGPLAN, (PrimitiveSchema) getSchema(BasicOntology.BYTE_SEQUENCE),  ObjectSchema.MANDATORY);
-			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
-			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
+			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(CFPSCHEDULINGSEQUENCE_ACCEPTPROPOSAL));
 			ps.add(CFPSCHEDULINGSEQUENCE_SCHEDULINGSTART, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
@@ -197,20 +197,20 @@ public class VPP_DR_Ontology extends Ontology{
 			ps = (PredicateSchema) (getSchema(CFPSCHEDULINGSEQUENCE_REJECTPROPOSAL));
 						
 			ps = (PredicateSchema) (getSchema(CFPSCHEDULINGSEQUENCE_SCHEDULINGDONE));
-			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
-			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
+			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(CFPSCHEDULINGSEQUENCE_SCHEDULINGFAILURE));
-			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
-			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.OPTIONAL);
+			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(TUCONTROLSEQUENCE_FAILURE));
 			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 					
 			ps = (PredicateSchema) (getSchema(BALANCINGSEQUENCE_AGREE));
-			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 
 			ps = (PredicateSchema) (getSchema(BALANCINGSEQUENCE_REFUSE));
 			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
@@ -228,15 +228,15 @@ public class VPP_DR_Ontology extends Ontology{
 			ps = (PredicateSchema) (getSchema(CANCELOPERATION_CANCEL));
 			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
-			ps.add(CANCELOPERATION_REFRENCE, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(CANCELOPERATION_REFERENCE, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(CANCELOPERATION_CONFIRM));
 			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
-			ps.add(CANCELOPERATION_REFRENCE, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(CANCELOPERATION_REFERENCE, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(CANCELOPERATION_FAILURE));
 			ps.add(TUNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
-			ps.add(CANCELOPERATION_REFRENCE, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
+			ps.add(CANCELOPERATION_REFERENCE, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);
 			
 			ps = (PredicateSchema) (getSchema(ACCOUNTINGSEQUENCE_INFORM));
 			ps.add(AGENTNAME, (PrimitiveSchema) getSchema(BasicOntology.STRING),  ObjectSchema.MANDATORY);

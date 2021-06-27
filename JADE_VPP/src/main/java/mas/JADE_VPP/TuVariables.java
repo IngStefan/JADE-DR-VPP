@@ -28,6 +28,7 @@ public class TuVariables {
 	public static boolean balancingRefuseTrigger = false;
 	public static boolean balancingAgreeTrigger = false;
 	public static boolean balancingInformTrigger = false;
+	public static boolean balancingInformInstantTrigger = false;
 	public static boolean balancingFailureTrigger = false;
 	public static String balancingTuName = "noName";	
 	public static int feedIn; 									//Einspeisung

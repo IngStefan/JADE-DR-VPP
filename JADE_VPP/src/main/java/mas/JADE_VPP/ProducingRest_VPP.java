@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class ProducingRest_VPP {
 
+	//****************************  INTERFACE TO NODE-RED (VPP) *******************************
 	//********************** Scheduling **********************
 	
     @RequestMapping (method=RequestMethod.PUT, value = "/vpp-agent/scheduling_request")
