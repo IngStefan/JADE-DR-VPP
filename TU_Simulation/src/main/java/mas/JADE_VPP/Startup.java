@@ -33,18 +33,12 @@ public class Startup {
 				
 //				ContainerManager.getInstance().instantiateAgent("TU_Company1_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
 //				ContainerManager.getInstance().instantiateAgent("TU_Company2_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
-				ContainerManager.getInstance().instantiateAgent("TU_Company3_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
+//				ContainerManager.getInstance().instantiateAgent("TU_Company3_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
 				
-//				ContainerManager.getInstance().instantiateAgent("TU_Company1_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company2_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company2_MRL(BACKUP)", "mas.JADE_VPP.TU", new String[]{"MRL"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company3_MRL_pla", "mas.JADE_VPP.TU", new String[]{"MRL_pla"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company3_MRL_act", "mas.JADE_VPP.TU", new String[]{"MRL_act"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company3_MRL_acc", "mas.JADE_VPP.TU", new String[]{"MRL_acc"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company4_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
-//				ContainerManager.getInstance().instantiateAgent("TU_Company5_MRL", "mas.JADE_VPP.TU", new String[]{"MRL"});
-				/*
-				//******* starting TU Agents (1st parameter: AgentName, 2nd parameter: class name, 3rd parameter: service description in comma separation) 
+
+				
+				//******* starting TU Agents (1st parameter: AgentName, 2nd parameter: class name, 3rd parameter: service description in comma separation)
+//				/*
 				ContainerManager.getInstance().instantiateAgent("TU_Company1_PRL", "mas.JADE_VPP.TU", new String[]{"PRL"});	
 				ContainerManager.getInstance().instantiateAgent("TU_Company2_PRL", "mas.JADE_VPP.TU", new String[]{"PRL"});	
 				ContainerManager.getInstance().instantiateAgent("TU_Company3_PRL", "mas.JADE_VPP.TU", new String[]{"PRL"});	
@@ -166,7 +160,7 @@ public class Startup {
 				
 				}
 				
-				*/
+//				 */
 			}
 			catch (Exception ex){
 					ex.printStackTrace();

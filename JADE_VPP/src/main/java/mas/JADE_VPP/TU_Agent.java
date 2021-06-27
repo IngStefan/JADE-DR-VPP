@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.ThreadLocalRandom;
 
 import jade.content.ContentElement;
 import jade.content.ContentElementList;
@@ -41,9 +40,9 @@ import jade.lang.acl.ACLMessage;
 import jade.lang.acl.MessageTemplate;
 import mas.JADE_VPP.ontology.*;
 
-public class TU extends Agent {
+public class TU_Agent extends Agent {
 	private static final long serialVersionUID = 1L;
-	
+	private ServiceDescription sd;
 	private Codec codec = new SLCodec();
 	//private Codec codec2 = new LEAPCodec();			//required for data transfer via bytesequences (i.e. Scheduling Plans), can also be done with SL Codec
 	private Ontology ontology = VPP_DR_Ontology.getInstance();
@@ -56,10 +55,9 @@ public class TU extends Agent {
 		//getContentManager().registerLanguage(codec2);
 		getContentManager().registerLanguage(codec);
 		getContentManager().registerOntology(ontology);
-		//Getting Arguments from the Startup.class
+		//****Getting Arguments from the Startup.class****
 		Object[] args = getArguments();
 		//the local name is user-set and given at the startup
-		String localName = getAID().getLocalName();
 		String arguments = String.valueOf(args[0]);		//get the arguments given from the Startup.java
 		arguments = arguments.replaceAll("\\s+","");	//remove all whitespaces
 		System.out.println("********* TU-Agent online: " + getAID().getName()+ " with Service Descriptions: " +String.valueOf(args[0])+ " *********");
@@ -77,10 +75,9 @@ public class TU extends Agent {
 			dfd.addLanguages(codec.getName());
 			//dfd.addLanguages(codec2.getName());
 			dfd.addOntologies(ontology.getName());
-			
+			sd = new ServiceDescription();
 			for(int i = 0; i <sdList.size(); i++) {
-				ServiceDescription sd = new ServiceDescription();
-				sd.setName(localName);
+				sd.setName(getAID().getLocalName());
 				sd.setType(sdList.get(i));
 				dfd.addServices(sd);
 			}
@@ -129,7 +126,7 @@ public class TU extends Agent {
 			//******************* Collecting Messages from other Agents ************
 			//******** Handling unknown messages: ****************
 			MessageTemplate mt = MessageTemplate.not(MessageTemplate.or(MessageTemplate.MatchOntology(ontology.getName()), //filter for messages that dont use the VPP_DR_Ontology
-					MessageTemplate.MatchOntology("FIPA-Agent-Management"))); 			
+					MessageTemplate.MatchOntology("FIPA-Agent-Management"))); 	
 			ACLMessage msg = receive(mt); 	//returns the first message of the message queue with the corresponding template
 			if (msg != null){				//if a proper message can be found
 				//********** every Message that does not use the VPP_DR_Ontology can not be understood ********
@@ -159,7 +156,6 @@ public class TU extends Agent {
 					switch(step){
 					//***************** Handling Requests *******************
 					case (ACLMessage.REQUEST):
-						
 						ce = getContentManager().extractContent(msg);
 						_ac = (Action) ce;
 						if(_ac.getAction() instanceof TUControlSequenceRequestSetpoint){
@@ -175,7 +171,7 @@ public class TU extends Agent {
 							FreqRelayEnableRequest _frer = (FreqRelayEnableRequest)_ac.getAction();
 							addBehaviour(new FREnablePerformer(msg.shallowClone(),_frer.getTuName()));
 						}else if(_ac.getAction() instanceof FreqRelayBlockRequest) {
-							System.out.println(this.getAgent().getAID().getLocalName()+"******* Frequency Relay Enable Message Received *******");
+							System.out.println(this.getAgent().getAID().getLocalName()+"******* Frequency Relay Disable Message Received *******");
 							FreqRelayBlockRequest _frbr = (FreqRelayBlockRequest)_ac.getAction();
 							addBehaviour(new FRBlockPerformer(msg.shallowClone(),_frbr.getTuName()));
 						}else if(_ac.getAction() instanceof RequestInfoRequest) {
@@ -216,7 +212,6 @@ public class TU extends Agent {
 						break;
 					//***************** Handling Informs *******************
 					case (ACLMessage.INFORM):
-						
 						ce = getContentManager().extractContent(msg);
 						Predicate _pc = (Predicate) ce;
 						if(_pc instanceof LoadTimeWindowsShareInform){
@@ -224,16 +219,16 @@ public class TU extends Agent {
 							LoadTimeWindowsShareInform _ltwsi = (LoadTimeWindowsShareInform)_pc;
 							InterfacePayloadLoadTimeWindows payload = new InterfacePayloadLoadTimeWindows(_ltwsi.getLoadTimeWindowsReference(),
 									_ltwsi.getWindowHighBegin(),_ltwsi.getWindowHighEnd(), _ltwsi.getWindowLowBegin(), _ltwsi.getWindowLowEnd());
-//							ConsumingRest_TU putInstance = new ConsumingRest_TU();
-//							putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.LOADTIMEWINDOWSINFORM, payload);
+							ConsumingRest_TU putInstance = new ConsumingRest_TU();
+							putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.LOADTIMEWINDOWSINFORM, payload);
 						}
 						break;	
-						//***************** Handling Cancels *******************
+					//***************** Handling Cancels *******************
 					case (ACLMessage.CANCEL):
 						ce = getContentManager().extractContent(msg);
 						Predicate _pcc = (Predicate) ce;
 						//******** Handling messages of the CancelOperation sequence ************
-						if(_pcc instanceof CancelOperation){
+						if(_pcc instanceof CancelOperationCancel){
 							System.out.println(this.getAgent().getAID().getLocalName()+"******* Cancel-Operation Sequence: CANCEL Message Received *******");
 							addBehaviour(new ReceiveCancelOperationPerformer(msg.shallowClone()));
 						}
@@ -298,17 +293,13 @@ public class TU extends Agent {
 				}
 			}
 		}
-	
-		
-		
 	}
 	
 	//********************** 1. Scheduling Sequence **********************
 	private class SchedulingSequencePerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-		
 		private boolean validOffer = false; 			//state of the TU Offer (true = valid offer and TU wants to propose)
-		private int step = 2;							//step counter for state machine
+		private int step = 0;							//step counter for state machine
 		private String timeBegin;
 		private String timeEnd;
 		private String expiration;
@@ -329,7 +320,6 @@ public class TU extends Agent {
 		private SchedulingSequencePerformer(ACLMessage _msg) {
 			msg = _msg;
 		}
-		
 		
 		public void onStart() {
 			ContentElement ce;
@@ -392,21 +382,7 @@ public class TU extends Agent {
 				
 				break;
 			case 2:
-				byte[] schedulingplan = new byte[] {(byte)0x00};
-				int randomNum = ThreadLocalRandom.current().nextInt(1000, 5000);
-				try {
-					Thread.sleep(randomNum);
-				} catch (InterruptedException e1) {
-					e1.printStackTrace();
-				}
-				if(randomNum > 1400) {
-					validOffer = true;
-				}else {
-					validOffer = false;
-				}
 				//******* sending an answer to the VPP according to the reaction of the ERP system **********
-//				Date replyDate = msg.getReplyByDate();							
-//				System.out.println("Date from Instant:\n" + replyDate + " long: " + replyDate.getTime());
 				try{
 					if(validOffer) {
 					//Sending a Propose-Answer
@@ -416,12 +392,9 @@ public class TU extends Agent {
 					ContentManager cm = myAgent.getContentManager();
 					ContentElementList cel = new ContentElementList();
 					CFPSchedulingSequencePropose newSchedulingSequencePropose = new CFPSchedulingSequencePropose();
-				    newSchedulingSequencePropose.setSchedulingPlan(schedulingplan);
+				    newSchedulingSequencePropose.setSchedulingPlan(TuVariables.schedulingPlan);
 				    newSchedulingSequencePropose.setAgentName(myAgent.getLocalName());
-				    newSchedulingSequencePropose.setTuName(getAID().getLocalName());
-					//Action act = new Action();
-					//act.setAction(newSchedulingSequencePropose); 	//Adding the Action the Agent has to perform
-					//act.setActor(new AID("*", AID.ISGUID));			//Adding an dummy Agent, because the actor field is mandatory (source: http://jade.tilab.com/pipermail/jade-develop/2010q4/016200.html)
+				    newSchedulingSequencePropose.setTuName(tuName);
 					cel.add(newSchedulingSequencePropose);
 					cm.fillContent(reply, cel);
 					myAgent.send(reply);
@@ -434,7 +407,7 @@ public class TU extends Agent {
 					ContentElementList cel = new ContentElementList();
 					CFPSchedulingSequenceRefuse newSchedulingSequenceRefuse = new CFPSchedulingSequenceRefuse();
 					newSchedulingSequenceRefuse.setAgentName(myAgent.getLocalName());
-					newSchedulingSequenceRefuse.setTuName(getAID().getLocalName());
+					newSchedulingSequenceRefuse.setTuName(tuName);
 					cel.add(newSchedulingSequenceRefuse);
 					cm.fillContent(reply, cel);
 					myAgent.send(reply);
@@ -449,7 +422,7 @@ public class TU extends Agent {
 				} 
 				validOffer = false;
 				step = 3;
-			break;
+				break;
 			//********** Receiving answers from VPP-Agent and informing the Planning-System **********
 			case 3:
 				MessageTemplate mt = MessageTemplate.and(
@@ -472,10 +445,10 @@ public class TU extends Agent {
 								timeEnd = ((CFPSchedulingSequenceAccept) _pc).getSchedulingEnd();
 								//********** Inform the ERP-System about the results**********
 								//******* the sending the new SchedulingPlan to the Planning System ******** 
-//								putInstance = new ConsumingRest_TU();
-//								payload = new InterfacePayloadPlanning(timeBegin, timeEnd, conversationID);
-//								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.SCHEDULINGACCEPTED, payload);
-								step = 5;
+								putInstance = new ConsumingRest_TU();
+								payload = new InterfacePayloadPlanning(timeBegin, timeEnd, conversationID);
+								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.SCHEDULINGACCEPTED, payload);
+								step = 4;
 							}
 						} catch (CodecException | OntologyException e) {
 							e.printStackTrace();
@@ -489,9 +462,9 @@ public class TU extends Agent {
 							if(_pc instanceof CFPSchedulingSequenceReject){			
 								//********** Inform the Planning-System about the results**********
 								//******* the sending the reject info to the Planning System ******** 
-//								putInstance = new ConsumingRest_TU();
-//								payload = new InterfacePayloadPlanning(conversationID);
-//								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.SCHEDULINGREJECTED, payload);
+								putInstance = new ConsumingRest_TU();
+								payload = new InterfacePayloadPlanning(conversationID);
+								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.SCHEDULINGREJECTED, payload);
 								step = 99;
 							}
 						}catch (CodecException | OntologyException e) {
@@ -505,9 +478,6 @@ public class TU extends Agent {
 			//********** Receiving Info from Planning-System about the results**********
 			case 4:
 				dateNow = new Date();
-//				SimpleDateFormat formatter2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-//				formatter2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-//				formatter2.format(dateNow);
 				if(TuVariables.schedulingInformTrigger && (TuVariables.referenceID.equals(conversationID))){
 					TuVariables.schedulingInformTrigger = false;
 					validOffer = true;
@@ -519,26 +489,11 @@ public class TU extends Agent {
 					tuName = TuVariables.schedulingTUName;
 					step = 5;
 				}
-				step = 5;
 				break;
 			//********** Confirm the VPP-Agent about the results from the ERP-System**********
 			case 5:
-				validOffer=true;
-				randomNum = ThreadLocalRandom.current().nextInt(1000, 5000);
-				try {
-					Thread.sleep(randomNum);
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
-				if(randomNum > 1400) {
-					validOffer = true;
-				}else {
-					validOffer = false;
-				}
 				try{
 					if(validOffer) {
-						System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending INFORM to VPP *******");
 						//Sending a INFORM-Done-Answer
 						ACLMessage reply = msg.createReply(); //create a new ACLMessage that is a reply to this message. In particular, it sets the following parameters of the new message: receiver, language, ontology, protocol, conversation-id, in-reply-to, reply-with
 						reply.setLanguage(codec.getName());
@@ -547,26 +502,25 @@ public class TU extends Agent {
 						ContentElementList cel = new ContentElementList();
 						CFPSchedulingSequenceDone newSchedulingSequenceDone = new CFPSchedulingSequenceDone();
 						newSchedulingSequenceDone.setAgentName(myAgent.getLocalName());
-						newSchedulingSequenceDone.setTuName(myAgent.getLocalName());
+						newSchedulingSequenceDone.setTuName(tuName);
 						cel.add(newSchedulingSequenceDone);
 						cm.fillContent(reply, cel);
 						myAgent.send(reply);
 						step = 99;
 					}
 					else{
-						System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending FAILURE to VPP *******");
-					//Sending a FAILURE-Answer
-					ACLMessage reply = msg.createReply();
-					reply.setPerformative(ACLMessage.FAILURE);
-					ContentManager cm = myAgent.getContentManager();
-					ContentElementList cel = new ContentElementList();
-					CFPSchedulingSequenceFailure newSchedulingSequenceFailure = new CFPSchedulingSequenceFailure();
-					newSchedulingSequenceFailure.setAgentName(myAgent.getLocalName());
-					newSchedulingSequenceFailure.setTuName(myAgent.getLocalName());
-					cel.add(newSchedulingSequenceFailure);
-					cm.fillContent(reply, cel);
-					myAgent.send(reply);
-					step = 99;
+						//Sending a FAILURE-Answer
+						ACLMessage reply = msg.createReply();
+						reply.setPerformative(ACLMessage.FAILURE);
+						ContentManager cm = myAgent.getContentManager();
+						ContentElementList cel = new ContentElementList();
+						CFPSchedulingSequenceFailure newSchedulingSequenceFailure = new CFPSchedulingSequenceFailure();
+						newSchedulingSequenceFailure.setAgentName(myAgent.getLocalName());
+						newSchedulingSequenceFailure.setTuName(tuName);
+						cel.add(newSchedulingSequenceFailure);
+						cm.fillContent(reply, cel);
+						myAgent.send(reply);
+						step = 99;
 					}
 				}
 				catch (CodecException ce) {
@@ -584,6 +538,7 @@ public class TU extends Agent {
 				step = 99;
 			}
 		}
+		
 		public boolean done(){
 			return step == 100;
 			}
@@ -592,111 +547,106 @@ public class TU extends Agent {
 	//********************** 2. TU Control Sequence **********************
 	private class ControlSequencePerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-			private int step = 0;							//step counter for state machine
-			private boolean newSetpointVersion = false;
-			private ACLMessage msg;
-			private String tuName; 
-			private byte[] newLoadProfile;
-			private int newSetpoint;
-			
-			private ControlSequencePerformer(ACLMessage _msg, String _tuName, int _newSetpoint) {
-				msg = _msg;
-				tuName = _tuName;
-				newSetpoint = _newSetpoint;
-				newSetpointVersion = true;
-			}
-			
-			private ControlSequencePerformer(ACLMessage _msg, String _tuName, byte[] _newLoadProfile) {
-				msg = _msg;
-				tuName = _tuName;
-				newLoadProfile = _newLoadProfile;
-			}
-			
-			
-			public void onStart(){
-				System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending newSetpoint to TU *******");
-			}
-			
-			public void action(){
-				
-				switch(step){
-					case 0: 
-						//******* sending the scheduling request information to the TU system *******
-//						if(newSetpointVersion) {
-//							ConsumingRest_TU putInstance = new ConsumingRest_TU();
-//							InterfacePayloadNewSetpoint payload = new InterfacePayloadNewSetpoint(newSetpoint, tuName);
-//							putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.SETPOINT, payload);	
-//						}else {
-//							ConsumingRest_TU putInstanceOne = new ConsumingRest_TU();
-//							InterfacePayloadAgentReference payloadOne = new InterfacePayloadAgentReference(getAID().getLocalName(), tuName);
-//							putInstanceOne.putNodeRed(Addresses.URL_NODERED, PutVariable.LOADPROFILEINFO, payloadOne);	
-//							ConsumingRest_TU putInstanceTwo = new ConsumingRest_TU();
-//							putInstanceTwo.putNodeRed(Addresses.URL_NODERED, PutVariable.LOADPROFILE, newLoadProfile);	
-//						}
-						step = 1;
-						break;
-					case 1:
-						if(TuVariables.requestDoneTrigger) {
-							TuVariables.requestDoneTrigger = false;
-							step = 99;
-						}else if(TuVariables.requestFailureTrigger) {
-							TuVariables.requestFailureTrigger = false;
-							System.out.println(this.getAgent().getAID().getLocalName()+"******* Setting newSetpoint failed *******");
-							tuName=TuVariables.tuName;
-							//Sending a FAILURE-Answer
-							try {
-								ACLMessage reply = msg.createReply();
-								reply.setPerformative(ACLMessage.FAILURE);
-								reply.setConversationId("tuControlSequenceFailed");
-								ContentManager cm = myAgent.getContentManager();
-								ContentElementList cel = new ContentElementList();
-								TUControlSequenceFailure newTUControlSequenceFailure = new TUControlSequenceFailure();
-								newTUControlSequenceFailure.setTuName(tuName);
-								newTUControlSequenceFailure.setAgentName(getAID().getLocalName());
-								//newTUControlSequenceFailure.setTuControlSequenceFailed("tuControlSequenceFailed");
-								cel.add(newTUControlSequenceFailure);
-								cm.fillContent(reply, cel);
-								myAgent.send(reply);
-							} catch (CodecException e) {
-								e.printStackTrace();
-							} catch (OntologyException e) {
-								e.printStackTrace();
-							}
-							step = 99;
+		private int step = 0;							//step counter for state machine
+		private boolean newSetpointVersion = false;
+		private ACLMessage msg;
+		private String tuName; 
+		private byte[] newLoadProfile;
+		private int newSetpoint;
+		
+		private ControlSequencePerformer(ACLMessage _msg, String _tuName, int _newSetpoint) {
+			msg = _msg;
+			tuName = _tuName;
+			newSetpoint = _newSetpoint;
+			newSetpointVersion = true;
+		}
+		
+		private ControlSequencePerformer(ACLMessage _msg, String _tuName, byte[] _newLoadProfile) {
+			msg = _msg;
+			tuName = _tuName;
+			newLoadProfile = _newLoadProfile;
+		}
+		
+		public void onStart(){
+			System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending newSetpoint to TU *******");
+		}
+		
+		public void action(){
+			switch(step){
+				case 0: 
+					//******* sending the new control information to the TU system *******
+					if(newSetpointVersion) {
+						ConsumingRest_TU putInstance = new ConsumingRest_TU();
+						InterfacePayloadNewSetpoint payload = new InterfacePayloadNewSetpoint(newSetpoint, tuName);
+						putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.SETPOINT, payload);	
+					}else {
+						ConsumingRest_TU putInstanceOne = new ConsumingRest_TU();
+						InterfacePayloadAgentReference payloadOne = new InterfacePayloadAgentReference(getAID().getLocalName(), tuName);
+						putInstanceOne.putNodeRed(Addresses.URL_NODERED, PutVariable.LOADPROFILEINFO, payloadOne);	
+						ConsumingRest_TU putInstanceTwo = new ConsumingRest_TU();
+						putInstanceTwo.putNodeRed(Addresses.URL_NODERED, PutVariable.LOADPROFILE, newLoadProfile);	
+					}
+					step = 1;
+					break;
+				case 1:
+					if(TuVariables.requestDoneTrigger) {
+						TuVariables.requestDoneTrigger = false;
+						step = 99;
+					}else if(TuVariables.requestFailureTrigger) {
+						TuVariables.requestFailureTrigger = false;
+						System.out.println(this.getAgent().getAID().getLocalName()+"******* Setting newSetpoint failed *******");
+						tuName=TuVariables.tuName;
+						//Sending a FAILURE-Answer
+						try {
+							ACLMessage reply = msg.createReply();
+							reply.setPerformative(ACLMessage.FAILURE);
+							reply.setConversationId("tuControlSequenceFailed");
+							ContentManager cm = myAgent.getContentManager();
+							ContentElementList cel = new ContentElementList();
+							TUControlSequenceFailure newTUControlSequenceFailure = new TUControlSequenceFailure();
+							newTUControlSequenceFailure.setTuName(tuName);
+							newTUControlSequenceFailure.setAgentName(getAID().getLocalName());
+							//newTUControlSequenceFailure.setTuControlSequenceFailed("tuControlSequenceFailed");
+							cel.add(newTUControlSequenceFailure);
+							cm.fillContent(reply, cel);
+							myAgent.send(reply);
+						} catch (CodecException e) {
+							e.printStackTrace();
+						} catch (OntologyException e) {
+							e.printStackTrace();
 						}
 						step = 99;
-						break;
-					case 99: 
-						reset();
-						step = 100;
-						break;
-					default:
-						step = 99;
-					}
-			}
-			public boolean done(){
-				return step == 100;
+						}
+					break;
+				case 99: 
+					reset();
+					step = 100;
+					break;
+				default:
+					step = 99;
 				}
-				
+		}
+
+		
+		public boolean done(){
+			return step == 100;
 			}
+			
+		}
 
 	//********************** 3. TU Balancing Sequence **********************
 	private class BalancingSequencePerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-		
-		private int step = 1;
+		private int step = 0;
 		private int updateRate = 0;
 		private String balancingStart;
 		private String balancingEnd;
 		private String tuName = "noNameSet";
-		//private String agentName = "noNameSet";
-		//private String expiration;
 		private Date balancingStartDate;
 		private Date balancingEndDate;
 		private ACLMessage msg;
 		private Timer timer = new Timer(); //timer need to start the balancing updating process 
 		
-		//constructor that prepares the schedulingSequencePerformer
 		public BalancingSequencePerformer(ACLMessage _msg) {
 				msg = _msg;
 				}
@@ -712,9 +662,6 @@ public class TU extends Agent {
 				balancingStart = _bss.getBalancingStart();
 				balancingEnd = _bss.getBalancingEnd();
 				tuName = _bss.getTuName();
-				//SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-				//formatter.setTimeZone(TimeZone.getTimeZone("Europe/Berlin"));
-				//expiration = formatter.format(msg.getReplyByDate());	
 				updateRate = _bss.getUpdateRate();
 			} catch (CodecException | OntologyException e) {
 				step = 99;
@@ -727,7 +674,6 @@ public class TU extends Agent {
 				//also setting the balancingEnd date for the proper was of ending this sequence
 				balancingEndDate = formatter.parse(balancingEnd);
 				balancingStartDate = formatter.parse(balancingStart);
-				
 			} catch (ParseException e) {
 				step = 99;
 				e.printStackTrace();
@@ -746,21 +692,9 @@ public class TU extends Agent {
 				step = 1;
 				break;
 			case 1:
-				int randomNum = ThreadLocalRandom.current().nextInt(20, 100);
-				try {
-					Thread.sleep(randomNum);
-				} catch (InterruptedException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
 				//getting the current expiration time and date so the TU can send a refuse message if the deadline is done 
 				Date dateNow = new Date();
-				//SimpleDateFormat formatter2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-				//formatter2.format(dateNow); 
-//				if (dateNow.after(balancingStartDate)){
-//					step = 99;
-//				}
-				if(step == 1) {
+				if(TuVariables.balancingAgreeTrigger && tuName.equals(TuVariables.balancingTuName)) {
 					TuVariables.balancingAgreeTrigger = false;
 					System.out.println(this.getAgent().getAID().getLocalName()+"******* Balancing Request accepted *******");
 					//Sending an AGREE-Answer to the VPP
@@ -770,7 +704,7 @@ public class TU extends Agent {
 						ContentManager cm = myAgent.getContentManager();
 						ContentElementList cel = new ContentElementList();
 						BalancingSequenceAgree newBalancingSequenceAgree = new BalancingSequenceAgree();
-						newBalancingSequenceAgree.setTuName(tuName);
+						newBalancingSequenceAgree.setTuName(TuVariables.balancingTuName);
 						newBalancingSequenceAgree.setAgentName(getAID().getLocalName());
 						cel.add(newBalancingSequenceAgree);
 						cm.fillContent(reply, cel);
@@ -803,8 +737,6 @@ public class TU extends Agent {
 				break;
 			case 2:
 				Date dateNow2 = new Date();
-//				SimpleDateFormat formatter3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-//				formatter3.format(dateNow2);
 				//start a separate performer that replies every n second to the VPP
 				if (dateNow2.after(balancingStartDate)){
 					step = 3;
@@ -841,9 +773,9 @@ public class TU extends Agent {
 					} catch (CodecException | OntologyException e) {
 						e.printStackTrace();
 					}
-				}else if(TuVariables.balancingFailureTrigger && tuName.equals(TuVariables.balancingTuName)) {
+				}
+				else if(TuVariables.balancingFailureTrigger && tuName.equals(TuVariables.balancingTuName)) {
 					TuVariables.balancingFailureTrigger = false;
-						
 					System.out.println(this.getAgent().getAID().getLocalName()+"******* Balancing Request Failed *******");
 					//Sending a FAILURE-Answer
 					try {
@@ -864,15 +796,11 @@ public class TU extends Agent {
 					}
 				//End the balancing after the balancing end Time
 				Date _dateNow = new Date();
-//				SimpleDateFormat formatter3 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-//				formatter3.format(_dateNow); 
 				if (_dateNow.after(balancingEndDate)){
 					step = 99;
 				}
 				break;
 			case 99: 
-				myAgent.addBehaviour(tbf.wrap(new ScheduleAccounting(tuName,"accounting-"+tuName)));
-				//myAgent.addBehaviour(new ScheduleAccounting(tuName,"accounting-"+tuName));
 				TuVariables.resetScheduling();
 				reset();
 				timer.cancel();				//stopping the updating behaviour	
@@ -884,7 +812,7 @@ public class TU extends Agent {
 		}
 	public boolean done(){
 		return step == 100;
-		}
+	}
 		
 	private class balancingUpdatePerformer extends TimerTask {
 			private ACLMessage msg;
@@ -900,10 +828,8 @@ public class TU extends Agent {
 					ContentManager cm = myAgent.getContentManager();
 					ContentElementList cel = new ContentElementList();
 					BalancingSequenceInform newBalancingSequenceInform = new BalancingSequenceInform();
-					//TUDataSet newTUDataSet = new TUDataSet();
 					//giving the data to the newTUDataSet
-					TuVariables.randomBalancing();
-					
+					if(tuName.equals(TuVariables.balancingTuName)) {
 					TUDataSet newTUDataSet = new TUDataSet(TuVariables.feedIn, TuVariables.operatingPoint, 	
 					TuVariables.leadingOperatingPoint, TuVariables.currentValueFR, TuVariables.assignedPool,		
 					TuVariables.status, TuVariables.frequency, TuVariables.aFRRsetpoint, TuVariables.aFRRsetpointEcho,		
@@ -911,14 +837,14 @@ public class TU extends Agent {
 					TuVariables.capacityPOS, TuVariables.capacityNEG, TuVariables.holdingCapacityPOS,
 					TuVariables.holdingCapacityNEG,	TuVariables.controlBandPOS, TuVariables.controlBandNEG);	
 					newBalancingSequenceInform.setTUDataSet(newTUDataSet);
-					newBalancingSequenceInform.setTuName(getAID().getLocalName());
+					newBalancingSequenceInform.setTuName(TuVariables.balancingTuName);
 					newBalancingSequenceInform.setAgentName(getAID().getLocalName());
 					cel.add(newBalancingSequenceInform);
 					cm.fillContent(reply, cel);
 					myAgent.send(reply);
 					System.out.println(getAgent().getAID().getLocalName()+"******* Inform sent *******");
 					TuVariables.resetBalancing();
-				
+					}
 				} catch (CodecException | OntologyException e) {
 					e.printStackTrace();
 				}
@@ -927,13 +853,11 @@ public class TU extends Agent {
 	}
 	
 	//********************** 4. Accounting Sequence **********************
-	public class AccountingSequencePerformer extends Behaviour {
+	private class AccountingSequencePerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-		
 		private int step = 0;
 		private String tuName = "noNameSet";
 		private String agentName = "noNameSet";
-		//private String date;
 		private String referenceID = "noIDSet";
 		private String conversationID;
 		private byte[]  energyConsumptionProfile;
@@ -945,28 +869,22 @@ public class TU extends Agent {
 			referenceID = _referenceID;
 		}
 		
-		
 		public void onStart(){
 			System.out.println(this.getAgent().getAID().getLocalName()+"******* AccountingSequenceBehaviour started ********");
 			agentName = getAID().getLocalName();
 			Date dateNow = new Date();
 			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
 			formatter.format(dateNow); 
-			//date = dateNow.toString();
 			conversationID = "accountingInform";
 		}
 
 		public  void action(){
 			switch(step){
-			case 0:
-				//CHANGED FOR SIMULATION****
-				step =1;
-		    	break;
 			// sending the energy consumption profile to the VPP
-			case 1:
+			case 0:
 				System.out.println(this.getAgent().getAID().getLocalName()+"******* AccountingSequencePerformer started ********");
 				//searching for the complete AID of the referenced agent
-				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;		//contains the service description list that the schedulingSequence uses
+				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;
 				sdSearchTemplate.addLanguages(codec.getName());
 				sdSearchTemplate.addOntologies(ontology.getName());
 				ServiceDescription sd = new ServiceDescription();
@@ -984,15 +902,14 @@ public class TU extends Agent {
 					}
 					sdSearchTemplate.clearAllServices();
 					if(vppAgents.size()>0) {
-						step = 2;
+						step = 1;
 					}else {
 						System.out.println("No Agent can be found under that name");
 						step = 99;
 					}			
 				break;
-			case 2:
+			case 1:
 				System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out INFORM (energy consumption profiles) to VPP *******");
-				
 				ACLMessage msg = new ACLMessage(ACLMessage.INFORM);
 				msg.setOntology(ontology.getName());
 				msg.setLanguage(codec.getName());
@@ -1013,13 +930,13 @@ public class TU extends Agent {
 					cm.fillContent(msg, cel);
 					myAgent.send(msg);
 					msg.reset();
-					step = 3;
+					step = 2;
 				} catch (CodecException | OntologyException e){
 					e.printStackTrace();
 					step = 99;
 				}
 				break;
-			case 3:	
+			case 2:	
 				MessageTemplate mt = MessageTemplate.and(
 						MessageTemplate.MatchOntology(ontology.getName()),MessageTemplate.and(
 						MessageTemplate.MatchConversationId(conversationID),
@@ -1034,10 +951,10 @@ public class TU extends Agent {
 							Predicate _pc = (Predicate) ce;
 							if(_pc instanceof AccountingSequenceInformReceived){
 								//********** Inform the EMS-System about the results**********				
-//								AccountingSequenceInformReceived _asir = (AccountingSequenceInformReceived)_pc;
-//								InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(referenceID, getAID().getLocalName(),_asir.getTuName() );
-//								ConsumingRest_TU putInstance = new ConsumingRest_TU();
-//								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.ACCOUNTINGECPRECEIVED, payload);							
+								AccountingSequenceInformReceived _asir = (AccountingSequenceInformReceived)_pc;
+								InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(referenceID, getAID().getLocalName(),_asir.getTuName() );
+								ConsumingRest_TU putInstance = new ConsumingRest_TU();
+								putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.ACCOUNTINGECPRECEIVED, payload);							
 								step = 99;
 							}
 						} catch (CodecException | OntologyException e) {
@@ -1059,20 +976,16 @@ public class TU extends Agent {
 			default:
 				step = 99;
 			}
-	    	
-			
 		}
 
 		public boolean done(){
 			return step == 100;
 		}	
-		
 	}
 	
 	//********************** 5.LoadTimeWindows Request Sequence **********************	
-	public class LoadTimeWindowsRequestPerformer extends OneShotBehaviour{
+	private class LoadTimeWindowsRequestPerformer extends OneShotBehaviour{
 		private static final long serialVersionUID = 1L;
-		
 		private String loadTimeWindowsReference;
 		
 		LoadTimeWindowsRequestPerformer( String _loadTimeWindowsReference){
@@ -1083,7 +996,7 @@ public class TU extends Agent {
 			ArrayList <AID> vppAgents = new ArrayList<AID>();
 			System.out.println(this.getAgent().getAID().getLocalName()+"******* loadTimeWindowsSequence started ********");
 			//searching for the complete AID of the referenced agent
-			DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;		//contains the service description list that the schedulingSequence uses
+			DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;
 			sdSearchTemplate.addLanguages(codec.getName());
 			sdSearchTemplate.addOntologies(ontology.getName());
 			ServiceDescription sd = new ServiceDescription();
@@ -1101,10 +1014,7 @@ public class TU extends Agent {
 			}
 			sdSearchTemplate.clearAllServices();
 			if(vppAgents.size()>0) {
-				
-				
 				System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out Request (load time windows) to VPP *******");
-				
 				ACLMessage msg = new ACLMessage(ACLMessage.REQUEST);
 				msg.setOntology(ontology.getName());
 				msg.setLanguage(codec.getName());
@@ -1138,7 +1048,7 @@ public class TU extends Agent {
 	//********************** 6.A Frequency Relay Enable Sequence **********************
 	private class FREnablePerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-			private int step = 1;							//step counter for state machine
+			private int step = 0;							//step counter for state machine
 			private ACLMessage msg;
 			private String tuName = "NoNameSet"; 
 			
@@ -1163,17 +1073,10 @@ public class TU extends Agent {
 						step = 1;
 						break;
 					case 1:
-						int randomNum = ThreadLocalRandom.current().nextInt(20, 200);
 						try {
-							Thread.sleep(randomNum);
-						} catch (InterruptedException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
-						}
-						try {
-							if(step ==1) {
+							if(TuVariables.freqRelayEnableInformTrigger) {
 								TuVariables.freqRelayEnableInformTrigger = false;
-//								tuName=TuVariables.freqRelayEnableTUName;
+								tuName=TuVariables.freqRelayEnableTUName;
 								ACLMessage reply = msg.createReply();
 								reply.setPerformative(ACLMessage.INFORM);
 								ContentManager cm = myAgent.getContentManager();
@@ -1221,92 +1124,82 @@ public class TU extends Agent {
 	//********************** 6.B Frequency Relay Block Sequence **********************
 	private class FRBlockPerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-			private int step = 1;							//step counter for state machine
+		private int step = 0;							
+		private ACLMessage msg;
+		private String tuName = "NoNameSet";  
 
-			private ACLMessage msg;
-			private String tuName = "NoNameSet";  
 
-			
-			private FRBlockPerformer(ACLMessage _msg, String _tuName) {
-				msg = _msg;
-				tuName = _tuName;
-			}
-			
+		private FRBlockPerformer(ACLMessage _msg, String _tuName) {
+			msg = _msg;
+			tuName = _tuName;
+		}
 		
-			public void onStart(){
-				System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending Block Frequency Relay to TU *******");
-			}
-			
-			public void action(){
-				
-				switch(step){
-					case 0: 
-						//******* sending the request to the TU system *******
-						ConsumingRest_TU putInstance = new ConsumingRest_TU();
-						InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(tuName);
-						putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.FRBLOCKREQUEST, payload);	
-						step = 1;
-						break;
-					case 1:
-						int randomNum = ThreadLocalRandom.current().nextInt(20, 200);
-						try {
-							Thread.sleep(randomNum);
-						} catch (InterruptedException e1) {
-							// TODO Auto-generated catch block
-							e1.printStackTrace();
+		public void onStart(){
+			System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending Block Frequency Relay to TU *******");
+		}
+		
+		public void action(){
+			switch(step){
+				case 0: 
+					//******* sending the request to the TU system *******
+					ConsumingRest_TU putInstance = new ConsumingRest_TU();
+					InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(tuName);
+					putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.FRBLOCKREQUEST, payload);	
+					step = 1;
+					break;
+				case 1:
+					try {
+						if(TuVariables.freqRelayDisableInformTrigger) {
+							TuVariables.freqRelayDisableInformTrigger = false;
+							tuName=TuVariables.freqRelayDisableTUName;
+							ACLMessage reply = msg.createReply();
+							reply.setPerformative(ACLMessage.INFORM);
+							ContentManager cm = myAgent.getContentManager();
+							ContentElementList cel = new ContentElementList();
+							FreqRelayBlockInform newFreqRelayBlockInform = new FreqRelayBlockInform();
+							newFreqRelayBlockInform.setTuName(tuName);
+							newFreqRelayBlockInform.setAgentName(getAID().getLocalName());
+							cel.add(newFreqRelayBlockInform);
+							cm.fillContent(reply, cel);
+							myAgent.send(reply);
+							step = 99;
+						}else if(TuVariables.freqRelayDisableFailureTrigger) {
+							TuVariables.freqRelayDisableFailureTrigger = false;
+							tuName=TuVariables.freqRelayDisableTUName;
+							ACLMessage reply = msg.createReply();
+							reply.setPerformative(ACLMessage.FAILURE);
+							ContentManager cm = myAgent.getContentManager();
+							ContentElementList cel = new ContentElementList();
+							FreqRelayBlockFailure newFreqRelayBlockFailure = new FreqRelayBlockFailure();
+							newFreqRelayBlockFailure.setTuName(tuName);
+							newFreqRelayBlockFailure.setAgentName(getAID().getLocalName());
+							cel.add(newFreqRelayBlockFailure);
+							cm.fillContent(reply, cel);
+							myAgent.send(reply);
+							step = 99;
 						}
-						try {
-							if(step==1) {
-								TuVariables.freqRelayDisableInformTrigger = false;
-//								tuName=TuVariables.freqRelayDisableTUName;
-								ACLMessage reply = msg.createReply();
-								reply.setPerformative(ACLMessage.INFORM);
-								ContentManager cm = myAgent.getContentManager();
-								ContentElementList cel = new ContentElementList();
-								FreqRelayBlockInform newFreqRelayBlockInform = new FreqRelayBlockInform();
-								newFreqRelayBlockInform.setTuName(tuName);
-								newFreqRelayBlockInform.setAgentName(getAID().getLocalName());
-								cel.add(newFreqRelayBlockInform);
-								cm.fillContent(reply, cel);
-								myAgent.send(reply);
-								step = 99;
-							}else if(TuVariables.freqRelayDisableFailureTrigger) {
-								TuVariables.freqRelayDisableFailureTrigger = false;
-								tuName=TuVariables.freqRelayDisableTUName;
-								ACLMessage reply = msg.createReply();
-								reply.setPerformative(ACLMessage.FAILURE);
-								ContentManager cm = myAgent.getContentManager();
-								ContentElementList cel = new ContentElementList();
-								FreqRelayBlockFailure newFreqRelayBlockFailure = new FreqRelayBlockFailure();
-								newFreqRelayBlockFailure.setTuName(tuName);
-								newFreqRelayBlockFailure.setAgentName(getAID().getLocalName());
-								cel.add(newFreqRelayBlockFailure);
-								cm.fillContent(reply, cel);
-								myAgent.send(reply);
-								step = 99;
-							}
-						}
-						catch (CodecException | OntologyException e) {
-							e.printStackTrace();
-						}
-						break;
-					case 99: 
-						reset();
-						step = 100;
-						break;
-					default:
-						step = 99;
 					}
-			}
-			public boolean done(){
-				return step == 100;
+					catch (CodecException | OntologyException e) {
+						e.printStackTrace();
+					}
+					break;
+				case 99: 
+					reset();
+					step = 100;
+					break;
+				default:
+					step = 99;
 				}
-			}	
+		}
+		
+		public boolean done(){
+			return step == 100;
+		}
+	}	
 
 	//********************** 6.C Frequency Relay Triggered Sequence **********************
-	public class FRTriggeredPerformer extends Behaviour {
+	private class FRTriggeredPerformer extends Behaviour {
 			private static final long serialVersionUID = 1L;
-			
 			private int step = 0;
 			private String tuName = "noNameSet";
 			private String agentName = "noNameSet";
@@ -1317,7 +1210,6 @@ public class TU extends Agent {
 				tuName = _tuName;
 			}
 			
-			
 			public void onStart(){
 				System.out.println(this.getAgent().getAID().getLocalName()+"******* Frequency Relay Triggered Behaviour started ********");
 				agentName = getAID().getLocalName();
@@ -1325,10 +1217,9 @@ public class TU extends Agent {
 
 			public  void action(){
 				switch(step){
-				// sending the energy consumption profile to the VPP
 				case 0:
 					//searching for the complete AID of the referenced agent
-					DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;		//contains the service description list that the schedulingSequence uses
+					DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;
 					sdSearchTemplate.addLanguages(codec.getName());
 					sdSearchTemplate.addOntologies(ontology.getName());
 					ServiceDescription sd = new ServiceDescription();
@@ -1424,14 +1315,12 @@ public class TU extends Agent {
 			}	
 		}
 
-	//********************** 7. CancelOperation Sequence **********************
-	public class SendCancelOperationPerformer extends Behaviour {
+	//********************** 7.A Send CancelOperation Sequence **********************
+	private class SendCancelOperationPerformer extends Behaviour {
 		private static final long serialVersionUID = 1L;
-		
 		private int step = 0;
 		private String tuName = "noNameSet";
 		private String agentName = "noNameSet";
-		//private String date;
 		private String operationReference = "noIDSet"; 
 		private String conversationID;
 		private ArrayList <AID> vppAgents = new ArrayList<AID>();
@@ -1441,21 +1330,16 @@ public class TU extends Agent {
 			operationReference = _operationReference;
 		}
 		
-		
 		public void onStart(){
 			System.out.println(this.getAgent().getAID().getLocalName()+"******* OperationCancelBehaviour started ********");
 			agentName = getAID().getLocalName();
-//			Date dateNow = new Date();
-//			SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.GERMAN);
-//			formatter.format(dateNow); 
-			//date = dateNow.toString();
 			conversationID = "cancelOperation";
 		}
 
-		public  void action(){
+		public void action(){
 			switch(step){
 			case 0:
-				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;		//contains the service description list that the schedulingSequence uses
+				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;
 				sdSearchTemplate.addLanguages(codec.getName());
 				sdSearchTemplate.addOntologies(ontology.getName());
 				ServiceDescription sd = new ServiceDescription();
@@ -1494,7 +1378,7 @@ public class TU extends Agent {
 				try {
 					ContentManager cm = myAgent.getContentManager();
 					ContentElementList cel = new ContentElementList();
-					CancelOperation newCancelOperationInform = new CancelOperation();
+					CancelOperationCancel newCancelOperationInform = new CancelOperationCancel();
 					newCancelOperationInform.setAgentName(agentName);
 					newCancelOperationInform.setTuName(tuName);
 					newCancelOperationInform.setOperationReference(operationReference);
@@ -1522,7 +1406,7 @@ public class TU extends Agent {
 							ce = getContentManager().extractContent(msg);
 							Predicate _pc = (Predicate) ce;
 							if(_pc instanceof CancelOperationConfirm){
-								//********** Inform the EMS-System about the results**********				
+								//********** Inform the Planning-System about the results**********				
 								CancelOperationConfirm _asir = (CancelOperationConfirm)_pc;
 								InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(_asir.getOperationReference(), getAID().getLocalName(),_asir.getTuName() );
 								ConsumingRest_TU putInstance = new ConsumingRest_TU();
@@ -1562,7 +1446,6 @@ public class TU extends Agent {
 			default:
 				step = 99;
 			}
-			
 		}
 
 		public boolean done(){
@@ -1571,44 +1454,15 @@ public class TU extends Agent {
 		
 	}
 	
-	//********************** ----only for simulation--- **********************
-	public class ScheduleAccounting extends OneShotBehaviour{
-		private static final long serialVersionUID = 1L;
-		String tuName;
-		String referenceID;
-		
-		ScheduleAccounting(String _tuName, String _referenceID){
-			tuName = _tuName;
-			referenceID = _referenceID;
-			
-		}
-		
-		public  void action(){
-			// adding a random amount of time for the TU to send the ECPs (not realized via wait, so the agent task does not get suspended)
-			int randomNum = ThreadLocalRandom.current().nextInt(0, 60000); 
-			try {
-				Thread.sleep(randomNum);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
-			byte[] schedulingplan = new byte[] {(byte)0x01};
-			myAgent.addBehaviour(tbf.wrap(new AccountingSequencePerformer(schedulingplan, tuName, referenceID)));
-
-		}
-	
-	}
-	
 	//********************** 7.B Receive CancelOperation Sequence **********************
 	private class ReceiveCancelOperationPerformer extends Behaviour{
 		private static final long serialVersionUID = 1L;
-			
-		private int step = 1;
+		private int step = 0;
 		private String tuName = "noNameSet";
 		private String agentName = "noNameSet";
 		private String operationReference = "noReferenceSet";
 		private ACLMessage msg;
 			
-		//constructor that prepares the schedulingSequencePerformer
 		ReceiveCancelOperationPerformer(ACLMessage _msg) {	
 				msg = _msg;
 				}
@@ -1617,7 +1471,7 @@ public class TU extends Agent {
 			try {
 				ContentElement ce = getContentManager().extractContent(msg);
 				Predicate _pc = (Predicate) ce;
-				CancelOperation _coi = (CancelOperation)_pc;
+				CancelOperationCancel _coi = (CancelOperationCancel)_pc;
 				tuName = _coi.getTuName();
 				agentName = _coi.getAgentName();
 				operationReference = _coi.getOperationReference();
@@ -1628,15 +1482,15 @@ public class TU extends Agent {
 			 
 		public void action() {
 			switch (step) {
-			case 0:	//sending the energy consumption profiles to the VPP
+			case 0:	
 					ConsumingRest_TU putInstance = new ConsumingRest_TU();
 					InterfacePayloadAgentReference payload = new InterfacePayloadAgentReference(operationReference, agentName,tuName);
 					putInstance.putNodeRed(Addresses.URL_NODERED, PutVariable.CANCELOPERATION, payload);
 					step = 1;
 					break;
 			case 1:
-//						if(TuVariables.receiveCancelOperationTrigger && operationReference.equals(TuVariables.receiveCancelOperationReference)) {
-//							TuVariables.receiveCancelOperationTrigger = false;
+				if(TuVariables.receiveCancelOperationTrigger && operationReference.equals(TuVariables.receiveCancelOperationReference)) {
+						TuVariables.receiveCancelOperationTrigger = false;
 						System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out new INFORM to TU: " + tuName +" *******");
 						try {
 							ACLMessage reply = msg.createReply();
@@ -1653,25 +1507,25 @@ public class TU extends Agent {
 							e.printStackTrace();
 						}
 					step = 99;
-//					}else if(TuVariables.receiveCancelOperationTriggerFail && operationReference.equals(TuVariables.receiveCancelOperationReference)) {
-//					TuVariables.receiveCancelOperationTriggerFail = false;
-//					System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out new INFORM to TU: " + tuName +" *******");
-//					try {
-//						ACLMessage reply = msg.createReply();
-//						reply.setPerformative(ACLMessage.FAILURE);
-//						ContentManager cm = myAgent.getContentManager();
-//						ContentElementList cel = new ContentElementList();
-//						CancelOperationFailure newCancelOperationInformReceived = new CancelOperationFailure();
-//						newCancelOperationInformReceived.setTuName(tuName);
-//						newCancelOperationInformReceived.setOperationReference(operationReference);
-//						cel.add(newCancelOperationInformReceived);
-//						cm.fillContent(reply, cel);
-//						myAgent.send(reply);
-//					} catch (CodecException | OntologyException e) {
-//						e.printStackTrace();
-//					}
-//				step = 99;
-//				}
+				}else if(TuVariables.receiveCancelOperationTriggerFail && operationReference.equals(TuVariables.receiveCancelOperationReference)) {
+					TuVariables.receiveCancelOperationTriggerFail = false;
+					System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out new INFORM to TU: " + tuName +" *******");
+					try {
+						ACLMessage reply = msg.createReply();
+						reply.setPerformative(ACLMessage.FAILURE);
+						ContentManager cm = myAgent.getContentManager();
+						ContentElementList cel = new ContentElementList();
+						CancelOperationFailure newCancelOperationInformReceived = new CancelOperationFailure();
+						newCancelOperationInformReceived.setTuName(tuName);
+						newCancelOperationInformReceived.setOperationReference(operationReference);
+						cel.add(newCancelOperationInformReceived);
+						cm.fillContent(reply, cel);
+						myAgent.send(reply);
+					} catch (CodecException | OntologyException e) {
+						e.printStackTrace();
+					}
+				step = 99;
+			}
 			break;
 			case 99: //final case, here reset() must be called. A reset() in done() would result in a reset() call every cycle, because done() gets called every cycle
 				reset(); 				//any Behaviour object that has been executed once, must be	reset by calling its reset() method before it can be executed again.
@@ -1689,20 +1543,16 @@ public class TU extends Agent {
 
 	//********************** 8.A RequestInfos Sequence **********************
 	private class RequestInfoPerformer extends Behaviour {
-	private static final long serialVersionUID = 1L;
-		
+		private static final long serialVersionUID = 1L;	
 		private int step = 0;
 		private String tuName = "VPPAgent";
-//			private String agentName = "noNameSet";
 		private String conversationID;
 		private byte[] infoSet;
 		private ArrayList <AID> vppAgents = new ArrayList<AID>();
 		private Date expireDate;
-
 		
 		public void onStart(){
 			System.out.println(this.getAgent().getAID().getLocalName()+"******* RequestInfosBehaviour started ********");
-//				agentName = getAID().getLocalName();
 			Date dateStart = new Date();
 			long t;
 			t = dateStart.getTime();
@@ -1713,7 +1563,7 @@ public class TU extends Agent {
 		public  void action(){
 			switch(step){
 			case 0:
-				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;		//contains the service description list that the schedulingSequence uses
+				DFAgentDescription sdSearchTemplate = new DFAgentDescription() ;
 				sdSearchTemplate.addLanguages(codec.getName());
 				sdSearchTemplate.addOntologies(ontology.getName());
 				ServiceDescription sd = new ServiceDescription();
@@ -1811,27 +1661,20 @@ public class TU extends Agent {
 			default:
 				step = 99;
 			}
-			
-		
-		
 		}
+		
 		public boolean done() {
 			return step == 100;
 		}
-		
-		
-		}
+	}
 
 	//********************** 8.B RequestInfosResponse Sequence **********************
 	private class RequestInfoResponsePerformer extends OneShotBehaviour{
 		private static final long serialVersionUID = 1L;
-		
 		private String tuName = "noNameSet";
-//			private String agentName = "noNameSet";
-		private byte[] infoSet = new byte[] {(byte)0x01};
+		private byte[] infoSet;
 		private ACLMessage msg;
-			
-		//constructor that prepares the schedulingSequencePerformer
+
 		RequestInfoResponsePerformer(ACLMessage _msg) {	
 				msg = _msg;
 				}
@@ -1850,8 +1693,8 @@ public class TU extends Agent {
 		}
 			 
 		public void action() {
-//				ConsumingRest_TU getInstance = new ConsumingRest_TU();
-//				infoSet = getInstance.getNodeRed(Addresses.URL_NODERED, PutVariable.REQUESTINFO);
+			ConsumingRest_TU getInstance = new ConsumingRest_TU();
+			infoSet = getInstance.getNodeRed(Addresses.URL_NODERED, PutVariable.REQUESTINFO);
 			System.out.println(this.getAgent().getAID().getLocalName()+"******* Sending out new RequestInfo *******");
 			try {
 				ACLMessage reply = msg.createReply();
@@ -1859,7 +1702,7 @@ public class TU extends Agent {
 				ContentManager cm = myAgent.getContentManager();
 				ContentElementList cel = new ContentElementList();
 				RequestInfoInform newRequestInfoInform = new RequestInfoInform();
-				newRequestInfoInform.setTuName(getAID().getLocalName());
+				newRequestInfoInform.setTuName(tuName);
 				newRequestInfoInform.setAgentName(getAID().getLocalName());
 				newRequestInfoInform.setInfoSet(infoSet);
 				cel.add(newRequestInfoInform);

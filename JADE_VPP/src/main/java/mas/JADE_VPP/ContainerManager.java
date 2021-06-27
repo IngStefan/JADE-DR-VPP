@@ -29,20 +29,20 @@ public class ContainerManager {
 		jade.core.Runtime runtime = jade.core.Runtime.instance(); 
 		//runtime.setCloseVM(true);
 		
-		////***** for MAIN CONTAINER (VPP) ************
+		//************ For creation as Main Container (VPP) ************
 		//Creates a profile for the start of the Main Container (for VPP Agent)
 		Profile p = new jade.core.ProfileImpl();
 		p.setParameter(jade.core.Profile.CONTAINER_NAME, "VPP");
 		p.setParameter(jade.core.Profile.MAIN_HOST, "localhost");
-		p.setParameter(jade.core.Profile.GUI, "true");		//starts the JADE user interface
+		p.setParameter(jade.core.Profile.GUI, "true");		//enables JADE UI
 		containerController = runtime.createMainContainer(p);	
 		
 				
-		////***** for Agent CONTAINER (TU) ************
+		//************ For creation as Agent Container (TU) ************
 		//Alternative profile to join a Main Container (for TU-Agents)
 //		Profile p = new jade.core.ProfileImpl();
 //		p.setParameter(jade.core.Profile.CONTAINER_NAME, "TU_Company3");
-//		p.setParameter(jade.core.Profile.MAIN_HOST, "192.168.152.233");	// IP of the Main Host the TUs should connect to
+//		p.setParameter(jade.core.Profile.MAIN_HOST, "192.168.152.233");	// IP-Address of MainContainer
 //		containerController = runtime.createAgentContainer(p);	
 		
 	}

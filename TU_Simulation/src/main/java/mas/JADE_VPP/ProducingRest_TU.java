@@ -158,6 +158,50 @@ public class ProducingRest_TU {
       	return payload;
     }
     
+    @RequestMapping (method=RequestMethod.PUT, value = "/tu-agent/balancing_informInstant")
+    public InterfacePayloadBalancing newBalancingInformInstant(
+    		@RequestParam(name = "tuName") String _tuName,
+    		@RequestParam(name = "feedIn") int _feedIn, 
+    		@RequestParam(name = "operatingPoint") int _operatingPoint,
+    		@RequestParam(name = "leadingOperatingPoint") int _leadingOperatingPoint,
+    		@RequestParam(name = "currentValueFR") int _currentValueFR,
+    		@RequestParam(name = "assignedPool") int _assignedPool,
+    		@RequestParam(name = "status") int _status, 
+    		@RequestParam(name = "frequency") int _frequency,
+    		@RequestParam(name = "aFRRsetpoint") int _aFRRsetpoint,
+    		@RequestParam(name = "aFRRsetpointEcho") int _aFRRsetpointEcho,
+    		@RequestParam(name = "setpointFR") int _setpointFR,
+    		@RequestParam(name = "aFRRGradientPOS") int _aFRRGradientPOS,
+    		@RequestParam(name = "aFRRGradientNEG") int _aFRRGradientNEG, 
+    		@RequestParam(name = "capacityPOS") int _capacityPOS,
+    		@RequestParam(name = "capacityNEG") int _capacityNEG,
+    		@RequestParam(name = "holdingCapacityPOS") int _holdingCapacityPOS, 
+    		@RequestParam(name = "holdingCapacityNEG") int _holdingCapacityNEG,
+    		@RequestParam(name = "controlBandPOS") int _controlBandPOS,
+    		@RequestParam(name = "controlBandNEG") int _controlBandNEG) {
+    	InterfacePayloadBalancing payload = new InterfacePayloadBalancing(_tuName);
+    	TuVariables.balancingTuName = _tuName;
+    	TuVariables.feedIn = _feedIn;											//Einspeisung
+    	TuVariables.operatingPoint = _operatingPoint; 							//Arbeitspunkt
+    	TuVariables.leadingOperatingPoint = _leadingOperatingPoint;				//vorauseilender Arbeitspunkt
+    	TuVariables.currentValueFR = _currentValueFR;							//Regelleistungsistwert
+    	TuVariables.assignedPool = _assignedPool;								//Poolzuordnung
+    	TuVariables.status = _status;											//Status (Meldung)
+    	TuVariables.frequency = _frequency;										//Frequenz
+    	TuVariables.aFRRsetpoint = _aFRRsetpoint;								//aFRR-Soll (ÜNB -> POOL)
+    	TuVariables.aFRRsetpointEcho = _aFRRsetpointEcho;						//aFRR-Soll-Echo (Pool -> ÜNB)
+    	TuVariables.setpointFR = _setpointFR;									//Regelleistungs-Soll
+    	TuVariables.aFRRGradientPOS = _aFRRGradientPOS;							//aFRR-Gradient POS
+    	TuVariables.aFRRGradientNEG = _aFRRGradientNEG;							//aFRR-Gradient NEG
+    	TuVariables.capacityPOS = _capacityPOS;									//Arbeitsvermögen POS (bei begrenztem Energiespeicher)
+    	TuVariables.capacityNEG = _capacityNEG;									//Arbeitsvermögen NEG (bei begrenzten Energiespeicher)
+    	TuVariables.holdingCapacityPOS = _holdingCapacityPOS;					//Aktuelle Vorhalteleistung POS
+    	TuVariables.holdingCapacityNEG = _holdingCapacityNEG;					//Aktuelle Vorhalteleistung NEG
+    	TuVariables.controlBandPOS = _controlBandPOS;							//Regelband POS
+    	TuVariables.controlBandNEG = _controlBandNEG;							//Regelband NEG
+    	TuVariables.balancingInformInstantTrigger = true;
+      	return payload;
+    }
     
     @RequestMapping (method=RequestMethod.PUT, value = "/tu-agent/balancing_inform")
     public InterfacePayloadBalancing newBalancingInform(
@@ -202,7 +246,7 @@ public class ProducingRest_TU {
     	TuVariables.controlBandNEG = _controlBandNEG;							//Regelband NEG
     	TuVariables.balancingInformTrigger = true;
       	return payload;
-    }
+    } 
     
     @RequestMapping (method=RequestMethod.PUT, value = "/tu-agent/balancing_failure")
     public InterfacePayloadBalancing newBalancingFailure(@RequestParam(name = "tuName") String _tuName){
